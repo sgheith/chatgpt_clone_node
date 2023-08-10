@@ -38,8 +38,8 @@ const performChatCompleltionWithHistory = async () => {
         // Q2
         messages = [
             { 'role': 'system', 'content': system_role_content },
-//            { 'role': 'user', 'content': q1 },
-//            { 'role': 'assistant', 'content': bot_response_1 },
+            //            { 'role': 'user', 'content': q1 },
+            //            { 'role': 'assistant', 'content': bot_response_1 },
             { 'role': 'user', 'content': q2 }
         ]
 
@@ -51,10 +51,10 @@ const performChatCompleltionWithHistory = async () => {
             // Q3
             messages = [
                 { 'role': 'system', 'content': system_role_content },
-//                { 'role': 'user', 'content': q1 },
-//                { 'role': 'assistant', 'content': bot_response_1 },
-//                { 'role': 'user', 'content': q2 },
-//                { 'role': 'assistant', 'content': bot_response_2 },
+                //                { 'role': 'user', 'content': q1 },
+                //                { 'role': 'assistant', 'content': bot_response_1 },
+                //                { 'role': 'user', 'content': q2 },
+                //                { 'role': 'assistant', 'content': bot_response_2 },
                 { 'role': 'user', 'content': q3 }
             ]
 
@@ -72,4 +72,53 @@ const performChatCompleltionWithHistory = async () => {
     )
 }
 
-performChatCompleltionWithHistory()
+const performChatCompleltionWithHistoryContinuous = () => {
+
+    rl.question("Enter System Prompt: ", async (prompt) => {
+        system_role_content = prompt;
+
+        if (!system_role_content || system_role_content.trim().length === 0)
+            system_role_content = "You reply as concisely as possible."
+
+        messages = [
+            { 'role': 'system', 'content': system_role_content }
+        ]
+
+        performChatCompleltionWithHistoryContinuousInternal(messages);
+    }
+    )
+}
+
+const performChatCompleltionWithHistoryContinuousInternal = (messages) => {
+
+    rl.question("Me: ", current_question => {
+
+        if (['exit', 'quit'].includes(current_question.toLocaleLowerCase())) {
+            console.log('Chat Bot: I was happy to asssist you. Bye bye!')
+            return
+        }
+
+        if (current_question.toLocaleLowerCase() == "") {
+            performChatCompleltionWithHistoryContinuousInternal(messages);
+            return
+        }
+
+        messages.push({ "role": "user", "content": current_question })
+
+        generateChatCompletion(messages).then(current_response => {
+
+            console.log('Chat Bot: ' + current_response);
+
+            messages.push({ "role": "assistant", "content": current_response })
+
+            performChatCompleltionWithHistoryContinuousInternal(messages);
+        }
+        )
+    }
+    )
+}
+
+
+//performChatCompleltionWithHistory()
+
+performChatCompleltionWithHistoryContinuous();

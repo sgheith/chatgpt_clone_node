@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ChatGPT Clone</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    /* Additional CSS to distinguish "Me" and ChatBot messages */
+    .message-me {
+      background-color: #007bff;
+    }
+    .message-chatbot {
+      background-color: #28a745;
+    }
+    .message-system {
+      background-color: #dc3545;
+    }
+  </style>
+</head>
+
+<body class="bg-light">
+
+  <div class="container rounded bg-dark text-white p-4 mt-4">
+    <div class="text-center">
+      <img src="logo.png" alt="Logo" width="100">
+      <h2 class="mt-2">ChatGPT Clone</h2>
+    </div>
+
+    <form id="chatForm" class="mb-4">
+      <div class="form-group">
+        <label for="systemPrompt">System Prompt:</label>
+        <input type="text" class="form-control" id="systemPrompt" value="You reply as concisely as possible.">
+      </div>
+      <div class="form-group">
+        <label for="userPrompt">User Prompt:</label>
+        <input type="text" class="form-control" id="userPrompt" required>
+      </div>
+      <div class="text-center">
+        <button type="submit" class="btn btn-primary">Send</button>
+        <button type="button" class="btn btn-secondary" id="clearButton">Clear</button>
+      </div>
+    </form>
+
+    <div id="chatHistory"></div>
+    <div id="spinner" class="text-center" style="display: none;">
+      <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let messages = [];
+
+    const displayMessage = (role, content) => {
+      const chatHistory = document.getElementById('chatHistory');
+      const messageDiv = document.createElement('div');
+      const roleClass = role === 'user' ? 'message-me' : role === 'system' ? 'message-system' : 'message-chatbot';
+      messageDiv.classList.add('p-2', 'mb-2', roleClass, 'text-white', 'rounded');
+      messageDiv.textContent = role === 'user' ? 'Me: ' + content : role === 'system' ? 'System: ' + content : 'Chat Bot: ' + content;
+      chatHistory.insertBefore(messageDiv, chatHistory.firstChild);
+    };
+
+    const updateChatHistory = () => {
+      const chatHistory = document.getElementById('chatHistory');
+      chatHistory.innerHTML = '';
+      messages.forEach((msg) => {
+        displayMessage(msg.role, msg.content);
+      });
+    };
+
+    const sendRequest = async (data) => {
+      const url = 'http://localhost:4000/openai/chatgpt_clone'; // Replace with your actual API URL
+      const chatForm = document.getElementById('chatForm');
+      const submitButton = chatForm.querySelector('button[type="submit"]');
+      const systemPromptInput = document.getElementById('systemPrompt');
+      const userPromptInput = document.getElementById('userPrompt');
+      const spinner = document.getElementById('spinner');
+
+      submitButton.disabled = true;
+      systemPromptInput.disabled = true;
+      userPromptInput.disabled = true;
+      spinner.style.display = 'block';
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ messages: data }),
+        });
+
+        const responseData = await response.json();
+
+        submitButton.disabled = false;
+        systemPromptInput.disabled = false;
+        userPromptInput.disabled = false;
+        spinner.style.display = 'none';
+
+        return responseData;
+      } catch (error) {
+        console.error('Error calling the API:', error);
+        submitButton.disabled = false;
+        systemPromptInput.disabled = false;
+        userPromptInput.disabled = false;
+        spinner.style.display = 'none';
+        return { 'content': 'An error occurred while calling the API.' };
+      }
+    };
+
+    const handleSubmit = async (event) => {
+      event.preventDefault();
+      const userPromptInput = document.getElementById('userPrompt');
+      const userPrompt = userPromptInput.value.trim();
+
+      if (!userPrompt) {
+        return;
+      }
+
+      const systemPromptInput = document.getElementById('systemPrompt');
+      const systemPrompt = systemPromptInput.value;
+
+      // If system role is not already in messages, add it to the beginning
+      if (messages.length === 0 || messages[0].role !== 'system') {
+        messages.unshift({ 'role': 'system', 'content': systemPrompt });
+      } else {
+        messages[0].content = systemPrompt; // Update the system role if it already exists
+      }
+
+      messages.push({ 'role': 'user', 'content': userPrompt });
+
+      const response = await sendRequest(messages);
+      messages.push({ 'role': 'assistant', 'content': response.content });
+
+      updateChatHistory();
+      userPromptInput.value = '';
+    };
+
+    const handleClear = () => {
+      const userPromptInput = document.getElementById('userPrompt');
+      userPromptInput.value = '';
+    };
+
+    const chatForm = document.getElementById('chatForm');
+    chatForm.addEventListener('submit', handleSubmit);
+
+    const clearButton = document.getElementById('clearButton');
+    clearButton.addEventListener('click', handleClear);
+  </script>
+
+</body>
+
+</html>
